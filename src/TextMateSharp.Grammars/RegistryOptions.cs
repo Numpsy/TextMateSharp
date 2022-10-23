@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.Json;
 
 using TextMateSharp.Grammars.Resources;
-
-using Newtonsoft.Json;
 
 using TextMateSharp.Internal.Grammars.Reader;
 using TextMateSharp.Internal.Themes.Reader;
@@ -157,15 +156,11 @@ namespace TextMateSharp.Grammars
 
         void InitializeAvailableGrammars()
         {
-            var serializer = new JsonSerializer();
-
             foreach (string grammar in GrammarNames.SupportedGrammars)
             {
                 using (Stream stream = ResourceLoader.OpenGrammarPackage(grammar))
-                using (StreamReader reader = new StreamReader(stream))
-                using (JsonTextReader jsonTextReader = new JsonTextReader(reader))
                 {
-                    GrammarDefinition definition = serializer.Deserialize<GrammarDefinition>(jsonTextReader);
+                    GrammarDefinition definition = JsonSerializer.Deserialize<GrammarDefinition>(stream);
                     _availableGrammars.Add(grammar, definition);
                 }
             }

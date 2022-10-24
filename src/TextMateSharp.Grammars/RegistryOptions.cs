@@ -129,9 +129,9 @@ namespace TextMateSharp.Grammars
                 return null;
 
             using (themeStream)
-            using (StreamReader reader = new StreamReader(themeStream))
+            //using (StreamReader reader = new StreamReader(themeStream))
             {
-                return ThemeReader.ReadThemeSync(reader);
+                return ThemeReader.ReadThemeSync(themeStream);
             }
         }
 
@@ -143,9 +143,9 @@ namespace TextMateSharp.Grammars
                 return null;
 
             using (grammarStream)
-            using (StreamReader reader = new StreamReader(grammarStream))
+            //using (StreamReader reader = new StreamReader(grammarStream))
             {
-                return GrammarReader.ReadGrammarSync(reader);
+                return GrammarReader.ReadGrammarSync(grammarStream);
             }
         }
 

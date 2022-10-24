@@ -7,7 +7,7 @@ namespace TextMateSharp.Internal.Grammars.Reader
 {
     public class GrammarReader
     {
-        public static IRawGrammar ReadGrammarSync(StreamReader reader)
+        public static IRawGrammar ReadGrammarSync(Stream reader)
         {
             JSONPListParser<IRawGrammar> parser = new JSONPListParser<IRawGrammar>(false);
             return parser.Parse(reader);

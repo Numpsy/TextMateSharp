@@ -98,7 +98,7 @@ namespace TextMateSharp.Registry
             Dictionary<string, int> embeddedLanguages)
         {
             IRawGrammar rawGrammar = null;
-            using (StreamReader sr = new StreamReader(path))
+            using (Stream sr = File.OpenRead(path))
             {
                 rawGrammar = GrammarReader.ReadGrammarSync(sr);
             }

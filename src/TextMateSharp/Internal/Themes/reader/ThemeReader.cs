@@ -9,7 +9,7 @@ namespace TextMateSharp.Internal.Themes.Reader
 {
     public class ThemeReader
     {
-        public static IRawTheme ReadThemeSync(StreamReader reader)
+        public static IRawTheme ReadThemeSync(Stream reader)
         {
             JSONPListParser<IRawTheme> parser = new JSONPListParser<IRawTheme>(true);
             return parser.Parse(reader);

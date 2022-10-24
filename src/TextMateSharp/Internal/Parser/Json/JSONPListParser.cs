@@ -1,6 +1,7 @@
+using System;
 using System.IO;
-
-using Newtonsoft.Json;
+using System.Text;
+using System.Text.Json;
 
 namespace TextMateSharp.Internal.Parser.Json
 {
@@ -14,46 +15,52 @@ namespace TextMateSharp.Internal.Parser.Json
             this.theme = theme;
         }
 
-        public T Parse(StreamReader contents)
+        public T Parse(Stream contents)
         {
             PList<T> pList = new PList<T>(theme);
 
-            JsonReader reader = new JsonTextReader(contents);
+            byte[] hmm = new byte[contents.Length];
+            contents.Read(hmm, 0, hmm.Length);
+
+            JsonReaderOptions options = new JsonReaderOptions();
+            options.CommentHandling = JsonCommentHandling.Skip;
+            options.AllowTrailingCommas = true;
+            var reader = new Utf8JsonReader(hmm, options);
 
             while (true)
             {
                 if (!reader.Read())
                     break;
 
-                JsonToken nextToken = reader.TokenType;
+                JsonTokenType nextToken = reader.TokenType;
                 switch (nextToken)
                 {
-                    case JsonToken.StartArray:
+                    case JsonTokenType.StartArray:
                         pList.StartElement("array");
                         break;
-                    case JsonToken.EndArray:
+                    case JsonTokenType.EndArray:
                         pList.EndElement("array");
                         break;
-                    case JsonToken.StartObject:
+                    case JsonTokenType.StartObject:
                         pList.StartElement("dict");
                         break;
-                    case JsonToken.EndObject:
+                    case JsonTokenType.EndObject:
                         pList.EndElement("dict");
                         break;
-                    case JsonToken.PropertyName:
+                    case JsonTokenType.PropertyName:
                         pList.StartElement("key");
-                        pList.AddString((string)reader.Value);
+                        pList.AddString((string)reader.GetString());
                         pList.EndElement("key");
                         break;
-                    case JsonToken.String:
+                    case JsonTokenType.String:
                         pList.StartElement("string");
-                        pList.AddString((string)reader.Value);
+                        pList.AddString(reader.GetString());
                         pList.EndElement("string");
                         break;
-                    case JsonToken.Null:
-                    case JsonToken.Boolean:
-                    case JsonToken.Integer:
-                    case JsonToken.Float:
+                    case JsonTokenType.Null:
+                    case JsonTokenType.Number:
+                    case JsonTokenType.False:
+                    case JsonTokenType.True:
                         break;
                 }
             }

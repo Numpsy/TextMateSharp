@@ -1,5 +1,7 @@
 using System;
+using System.Drawing;
 using System.IO;
+using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 using System.Text.Json;
 
@@ -9,27 +11,43 @@ namespace TextMateSharp.Internal.Parser.Json
     {
 
         private bool theme;
+        private readonly JsonReaderOptions options;
 
         public JSONPListParser(bool theme)
         {
             this.theme = theme;
+
+            this.options = new JsonReaderOptions();
+            options.CommentHandling = JsonCommentHandling.Skip;
+            options.AllowTrailingCommas = true;
         }
 
         public T Parse(Stream contents)
         {
             PList<T> pList = new PList<T>(theme);
 
-            byte[] hmm = new byte[contents.Length];
-            contents.Read(hmm, 0, hmm.Length);
+            var buffer = new byte[1024];
 
-            JsonReaderOptions options = new JsonReaderOptions();
-            options.CommentHandling = JsonCommentHandling.Skip;
-            options.AllowTrailingCommas = true;
-            var reader = new Utf8JsonReader(hmm, options);
+            // Fill the buffer.
+            // For this snippet, we're assuming the stream is open and has data.
+            // If it might be closed or empty, check if the return value is 0.
+            int size = contents.Read(buffer, 0, buffer.Length);
+
+            var reader = new Utf8JsonReader(buffer.AsSpan(0, size), isFinalBlock: false, state: new JsonReaderState(options));
 
             while (true)
             {
-                if (!reader.Read())
+                int bytesRead = -1;
+
+                while (!reader.Read())
+                {
+                    bytesRead = GetMoreBytesFromStream(contents, ref buffer, ref reader);
+
+                    if (bytesRead == 0)
+                        break;
+                }
+
+                if (bytesRead == 0)
                     break;
 
                 JsonTokenType nextToken = reader.TokenType;
@@ -65,6 +83,32 @@ namespace TextMateSharp.Internal.Parser.Json
                 }
             }
             return pList.GetResult();
+        }
+
+        private static int GetMoreBytesFromStream(Stream stream, ref byte[] buffer, ref Utf8JsonReader reader)
+        {
+            int bytesRead;
+            if (reader.BytesConsumed < buffer.Length)
+            {
+                ReadOnlySpan<byte> leftover = buffer.AsSpan((int)reader.BytesConsumed);
+
+                if (leftover.Length == buffer.Length)
+                {
+                    Array.Resize(ref buffer, buffer.Length * 2);
+                }
+
+                leftover.CopyTo(buffer);
+                bytesRead = stream.Read(buffer, leftover.Length, buffer.Length - leftover.Length);
+                reader = new Utf8JsonReader(buffer.AsSpan(0, bytesRead + leftover.Length), isFinalBlock: bytesRead == 0, reader.CurrentState);
+            }
+            else
+            {
+                bytesRead = stream.Read(buffer, 0, buffer.Length);
+                reader = new Utf8JsonReader(buffer.AsSpan(0, bytesRead), isFinalBlock: bytesRead == 0, reader.CurrentState);
+            }
+
+            //reader = new Utf8JsonReader(buffer, isFinalBlock: bytesRead == 0, reader.CurrentState);
+            return bytesRead;
         }
     }
 }
